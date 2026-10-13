@@ -1,12 +1,92 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Global Real Estate Deal Finder</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Global Real Estate Deal Finder</title>
+<style>
+*{box-sizing:border-box}
+body{font-family:system-ui,sans-serif;margin:0;background:#f4f6f8;color:#1a1a1a}
+.wrap{max-width:720px;margin:0 auto;padding:16px}
+h1{font-size:22px;margin:0 0 4px}
+.sub{color:#666;font-size:14px;margin-bottom:14px}
+.stats{display:flex;gap:10px;margin-bottom:14px}
+.stat{flex:1;background:#fff;border-radius:10px;padding:12px;text-align:center}
+.stat b{display:block;font-size:20px}
+.card{background:#fff;border-radius:10px;padding:14px;margin-bottom:14px}
+label{display:block;font-size:13px;color:#444;margin:10px 0 4px}
+input,select,textarea{width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:16px;background:#fff}
+.row{display:flex;gap:10px}.row>div{flex:1}
+button{background:#1a7f37;color:#fff;border:0;border-radius:8px;padding:12px;font-size:16px;width:100%;margin-top:14px}
+.del{background:#c62828;padding:8px;font-size:14px;margin-top:8px}
+.deal h3{margin:0 0 6px;font-size:17px}
+.deal p{margin:3px 0;font-size:14px}
+.pos{color:#1a7f37;font-weight:700}.neg{color:#c62828;font-weight:700}
+a{color:#0b5fff}
+.top{display:flex;justify-content:space-between;align-items:center}
+@media(prefers-color-scheme:dark){
+body{background:#111;color:#eee}.card,.stat{background:#1e1e1e}
+input,select,textarea{background:#2a2a2a;color:#eee;border-color:#444}
+label,.sub{color:#aaa}a{color:#6ea8ff}}
+</style>
 </head>
-<body style="font-family:sans-serif;padding:20px">
-  <h1>Global Real Estate Deal Finder</h1>
-  <p>Website chal rahi hai ✅</p>
+<body>
+<div class="wrap">
+<div class="top"><h1>🌍 Deal Finder</h1><a href="/export.csv">⬇ CSV</a></div>
+<div class="sub">Property leads save karein / Save property leads</div>
+
+<div class="stats">
+<div class="stat"><b>{{ totals.count }}</b>Deals</div>
+<div class="stat"><b class="{{ 'pos' if totals.spread >= 0 else 'neg' }}">{{ '{:,.0f}'.format(totals.spread) }}</b>Total Spread</div>
+</div>
+
+<form class="card" method="post" action="/add">
+<b>➕ Naya Deal / New Deal</b>
+<div class="row">
+<div><label>Country / देश</label>
+<select name="country">{% for c in countries %}<option>{{ c }}</option>{% endfor %}</select></div>
+<div><label>City / शहर *</label><input name="city" required></div>
+</div>
+<label>Address / पता</label><input name="address">
+<label>Property Type / प्रकार</label>
+<select name="property_type"><option>Residential</option><option>Commercial</option><option>Land</option><option>Other</option></select>
+<div class="row">
+<div><label>Price / कीमत</label><input name="price" type="number" step="any" min="0"></div>
+<div><label>Currency / मुद्रा</label>
+<select name="currency">{% for c in currencies %}<option>{{ c }}</option>{% endfor %}</select></div>
+</div>
+<div class="row">
+<div><label>Repair Cost / मरम्मत</label><input name="repair_cost" type="number" step="any" min="0"></div>
+<div><label>Target Price / बेचने की कीमत</label><input name="target_price" type="number" step="any" min="0"></div>
+</div>
+<label>Buyer Budget / खरीदार बजट</label><input name="buyer_budget" type="number" step="any" min="0">
+<label>Source URL / लिंक</label><input name="source_url" type="url" placeholder="https://">
+<div class="row">
+<div><label>Seller Name / विक्रेता</label><input name="seller_name"></div>
+<div><label>Seller Contact / संपर्क</label><input name="seller_contact"></div>
+</div>
+<label>Notes / नोट्स</label><textarea name="notes" rows="3"></textarea>
+<button type="submit">Save Deal / सेव करें</button>
+</form>
+
+{% for d in deals %}
+{% set spread = (d['target_price'] or 0) - (d['price'] or 0) - (d['repair_cost'] or 0) %}
+<div class="card deal">
+<h3>{{ d['city'] }}, {{ d['country'] }}</h3>
+<p>📍 {{ d['address'] or '-' }} · {{ d['property_type'] }}</p>
+<p>💰 Price: {{ '{:,.0f}'.format(d['price']) }} {{ d['currency'] }} · Repair: {{ '{:,.0f}'.format(d['repair_cost']) }}</p>
+<p>🎯 Target: {{ '{:,.0f}'.format(d['target_price']) }} · Buyer budget: {{ '{:,.0f}'.format(d['buyer_budget']) }}</p>
+<p>📈 Spread: <span class="{{ 'pos' if spread >= 0 else 'neg' }}">{{ '{:,.0f}'.format(spread) }} {{ d['currency'] }}</span></p>
+{% if d['seller_name'] or d['seller_contact'] %}<p>👤 {{ d['seller_name'] }} {{ d['seller_contact'] }}</p>{% endif %}
+{% if d['source_url'] and d['source_url'].startswith('http') %}<p>🔗 <a href="{{ d['source_url'] }}" target="_blank" rel="noopener noreferrer">Source link</a></p>{% endif %}
+{% if d['notes'] %}<p>📝 {{ d['notes'] }}</p>{% endif %}
+<form method="post" action="/delete/{{ d['id'] }}" onsubmit="return confirm('Delete this deal?')">
+<button class="del" type="submit">Delete / हटाएं</button>
+</form>
+</div>
+{% else %}
+<div class="card">Abhi koi deal nahi hai. Upar form se pehla deal add karein.</div>
+{% endfor %}
+</div>
 </body>
 </html>
